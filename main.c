@@ -12,7 +12,7 @@
   * This software is licensed under terms that can be found in the LICENSE file
   * in the root directory of this software component.
   * If no LICENSE file comes with this software, it is provided AS-IS.
-  * ！！！！！这是白底黑线代码！！！！！
+  * ！！！！！这是黑底白线代码！！！！！
   * 
   ******************************************************************************
   */
@@ -74,11 +74,11 @@
     HAL_GPIO_WritePin(GPIOB, MOTOR_IN4_PIN, GPIO_PIN_RESET); \
 } while(0)
 
-// 传感器状态读取宏（检测到黑线返回1）
-#define READ_LEFT_SENSOR()        (HAL_GPIO_ReadPin(GPIOB, LEFT_SENSOR_PIN) == GPIO_PIN_RESET)
-#define READ_MIDDLE_LEFT_SENSOR() (HAL_GPIO_ReadPin(GPIOB, MIDDLE_LEFT_SENSOR_PIN) == GPIO_PIN_RESET)
-#define READ_MIDDLE_RIGHT_SENSOR() (HAL_GPIO_ReadPin(GPIOB, MIDDLE_RIGHT_SENSOR_PIN) == GPIO_PIN_RESET)
-#define READ_RIGHT_SENSOR()       (HAL_GPIO_ReadPin(GPIOB, RIGHT_SENSOR_PIN) == GPIO_PIN_RESET)
+// 传感器状态读取宏（检测到白线返回1）
+#define READ_LEFT_SENSOR()        (HAL_GPIO_ReadPin(GPIOB, LEFT_SENSOR_PIN) == GPIO_PIN_SET)
+#define READ_MIDDLE_LEFT_SENSOR() (HAL_GPIO_ReadPin(GPIOB, MIDDLE_LEFT_SENSOR_PIN) == GPIO_PIN_SET)
+#define READ_MIDDLE_RIGHT_SENSOR() (HAL_GPIO_ReadPin(GPIOB, MIDDLE_RIGHT_SENSOR_PIN) == GPIO_PIN_SET)
+#define READ_RIGHT_SENSOR()       (HAL_GPIO_ReadPin(GPIOB, RIGHT_SENSOR_PIN) == GPIO_PIN_SET)
 
 // PWM速度控制
 #define BASE_SPEED 700     // 基础速度（全速前进）
@@ -113,8 +113,8 @@ TIM_HandleTypeDef htim1;
   uint8_t last_turn_direction = DIRECTION_NONE;  // 最近一次转弯方向
   uint8_t direction_history[DIRECTION_HISTORY_SIZE] = {0};  // 方向历史记录
   uint8_t history_index = 0;  // 历史记录索引
-  uint8_t lost_line_timer = 0;  // 丢失黑线计时器
-  uint32_t last_line_time = 0;  // 上次检测到黑线的时间
+  uint8_t lost_line_timer = 0;  // 丢失白线计时器
+  uint32_t last_line_time = 0;  // 上次检测到白线的时间
 
 /* USER CODE END PV */
 
@@ -152,7 +152,7 @@ void update_direction_history(uint8_t direction)
         direction_history[history_index] = direction;
         history_index = (history_index + 1) % DIRECTION_HISTORY_SIZE;
         last_turn_direction = direction;
-        last_line_time = HAL_GetTick();  // 更新最后检测到黑线的时间
+        last_line_time = HAL_GetTick();  // 更新最后检测到白线的时间
     }
 }
 
@@ -220,7 +220,7 @@ int main(void)
 
   HAL_Delay(1000);
 
-  // 初始停止
+  // 停止
   motor_stop();
   HAL_Delay(1000);
   /* USER CODE END 2 */
@@ -235,12 +235,12 @@ int main(void)
       uint8_t middle_right_sensor = READ_MIDDLE_RIGHT_SENSOR();
       uint8_t right_sensor = READ_RIGHT_SENSOR();
 
-      // 检查是否所有传感器都检测不到黑线
+      // 检查是否所有传感器都检测不到白线
       if (!left_sensor && !middle_left_sensor && !middle_right_sensor && !right_sensor) {
-          // 增加丢失黑线计时
+          // 增加丢失白线计时
           lost_line_timer++;
 
-          // 如果连续丢失黑线超过5次（约50ms），开始智能寻找
+          // 如果连续丢失白线超过5次（约50ms），开始智能寻找
           if(lost_line_timer > 5) {
               // 根据历史方向选择寻找方向
               uint8_t common_direction = get_most_common_direction();
@@ -257,11 +257,11 @@ int main(void)
               continue;
           }
       } else {
-          // 检测到黑线，重置计时器
+          // 检测到白线，重置计时器
           lost_line_timer = 0;
       }
 
-      // 条件1：四个传感器都检测到黑线 - 十字路口，慢速前进
+      // 条件1：四个传感器都检测到白线 - 十字路口，慢速前进
       if (left_sensor && middle_left_sensor && middle_right_sensor && right_sensor) {
           motor_slow_forward();
           HAL_Delay(200);  // 慢速通过十字路口
@@ -269,7 +269,7 @@ int main(void)
           continue;
       }
 
-      // 条件2：左边+中间两个检测到黑线 - 直角左转
+      // 条件2：左边+中间两个检测到白线 - 直角左转
       if (left_sensor && middle_left_sensor && middle_right_sensor) {
           motor_turn_left();
           update_direction_history(DIRECTION_LEFT);  // 记录左转方向
@@ -277,7 +277,7 @@ int main(void)
           continue;
       }
 
-      // 条件2.5：左边+中左/中右检测到黑线 - 直角左转
+      // 条件2.5：左边+中左/中右检测到白线 - 直角左转
       if ((left_sensor && middle_left_sensor) || (left_sensor && middle_right_sensor)) {
           motor_turn_left();
           update_direction_history(DIRECTION_LEFT);  // 记录左转方向
@@ -285,7 +285,7 @@ int main(void)
           continue;
       }
 
-      // 条件3：右边+中间两个检测到黑线 - 直角右转
+      // 条件3：右边+中间两个检测到白线 - 直角右转
       if (right_sensor && middle_left_sensor && middle_right_sensor) {
           motor_turn_right();
           update_direction_history(DIRECTION_RIGHT);  // 记录右转方向
@@ -293,7 +293,7 @@ int main(void)
           continue;
       }
 
-      // 条件3.5：右边+中左/中右检测到黑线 - 直角右转
+      // 条件3.5：右边+中左/中右检测到白线 - 直角右转
       if ((right_sensor && middle_left_sensor) || (right_sensor && middle_right_sensor)) {
           motor_turn_right();
           update_direction_history(DIRECTION_RIGHT);  // 记录右转方向
@@ -301,7 +301,7 @@ int main(void)
           continue;
       }
 
-      // 条件4：只有中间两个传感器检测到黑线 - 全速前进
+      // 条件4：只有中间两个传感器检测到白线 - 全速前进
       if (!left_sensor && middle_left_sensor && middle_right_sensor && !right_sensor) {
           motor_forward();
           // 直行不记录方向
@@ -309,7 +309,7 @@ int main(void)
           continue;
       }
 
-      // 条件5：只有中左检测到黑线 - 稍微左转
+      // 条件5：只有中左检测到白线 - 稍微左转
       if (!left_sensor && middle_left_sensor && !middle_right_sensor && !right_sensor) {
           motor_slight_left();
           update_direction_history(DIRECTION_LEFT);  // 记录左转趋势
@@ -317,7 +317,7 @@ int main(void)
           continue;
       }
 
-      // 条件6：只有中右检测到黑线 - 稍微右转
+      // 条件6：只有中右检测到白线 - 稍微右转
       if (!left_sensor && !middle_left_sensor && middle_right_sensor && !right_sensor) {
           motor_slight_right();
           update_direction_history(DIRECTION_RIGHT);  // 记录右转趋势
@@ -325,7 +325,7 @@ int main(void)
           continue;
       }
 
-      // 条件7：只有左传感器检测到黑线 - 急左转
+      // 条件7：只有左传感器检测到白线 - 急左转
       if (left_sensor && !middle_left_sensor && !middle_right_sensor && !right_sensor) {
           motor_sharp_left();
           update_direction_history(DIRECTION_LEFT);  // 记录左转方向
@@ -333,7 +333,7 @@ int main(void)
           continue;
       }
 
-      // 条件8：只有右传感器检测到黑线 - 急右转
+      // 条件8：只有右传感器检测到白线 - 急右转
       if (!left_sensor && !middle_left_sensor && !middle_right_sensor && right_sensor) {
           motor_sharp_right();
           update_direction_history(DIRECTION_RIGHT);  // 记录右转方向
@@ -341,14 +341,14 @@ int main(void)
           continue;
       }
 
-      // 条件9：只有中左传感器检测到黑线 - 微调右转
+      // 条件9：只有中左传感器检测到白线 - 微调右转
       if (!left_sensor && middle_left_sensor && !middle_right_sensor && !right_sensor) {
     	    motor_minor_right();
           //HAL_Delay(10);
           continue;
       }
 
-      // 条件10：只有右传感器检测到黑线 - 微调左转
+      // 条件10：只有右传感器检测到白线 - 微调左转
       if (!left_sensor && !middle_left_sensor && middle_right_sensor && !right_sensor) {
     	    motor_minor_left();
           //HAL_Delay(10);
@@ -497,7 +497,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : middle_left_sensor_Pin left_sensor_Pin middle_right_sensor_Pin right_sensor_Pin */
   GPIO_InitStruct.Pin = middle_left_sensor_Pin|left_sensor_Pin|middle_right_sensor_Pin|right_sensor_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB6 PB7 PB8 PB9 */
